@@ -3,50 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- SEO Meta Tags -->
-    <title>Free Opus to MP3 Converter | Convert Audio Online Instantly</title>
-    <meta name="description" content="A free, fast, and easy online tool to convert OPUS audio files to MP3 format in bulk. No limits, no registration required. Your files are processed securely in your browser.">
-    <meta name="keywords" content="opus to mp3, opus converter, mp3 converter, convert audio, online converter, free tool, audio conversion">
+    <title>Multi-Format Audio Converter</title>
+    
+    <!-- CSS styles are included directly in this file -->
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
 
-    <link rel="stylesheet" href="style.css">
+        .converter-box {
+            background-color: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Hide the default, ugly file input */
+        #uploader {
+            display: none;
+        }
+
+        /* Style our custom, beautiful button */
+        .upload-btn {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            font-weight: bold;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        }
+
+        #status {
+            margin-top: 25px;
+            font-style: italic;
+            color: #555;
+            min-height: 20px; /* This prevents the layout from jumping when text changes */
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <nav>
-            <div class="logo">AudioConverter</div>
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="about.html">About Us</a></li>
-                <li><a href="faq.html">FAQ</a></li>
-            </ul>
-        </nav>
-    </header>
 
-    <main class="container">
-        <h1>Opus to MP3 Converter</h1>
-        <p>Upload your .opus file, and it will be automatically converted to .mp3 and downloaded instantly.</p>
+    <div class="converter-box">
+        <h1>Multi-Format Audio Converter</h1>
+        <p>Select any audio file (e.g., WAV, M4A, FLAC), and it will be automatically converted to MP3 and downloaded.</p>
         
-        <div class="upload-box">
-            <input type="file" id="uploader" accept=".opus" hidden multiple/>
-            <button id="upload-btn">Select File(s)</button>
-            <p id="file-name"></p>
-        </div>
+        <!-- This is a visible button that is linked to the hidden file input -->
+        <label for="uploader" class="upload-btn">Select Audio File</label>
+        <input type="file" id="uploader" accept="audio/*">
 
-        <p id="status"></p>
+        <!-- This paragraph will show status messages to the user -->
+        <p id="status">Please wait, loading the converter engine...</p>
+    </div>
 
-        <div class="features">
-            <h2>Why Choose This Tool?</h2>
-            <p><strong>Completely Free:</strong> No hidden costs, no limits on file size or number of conversions.</p>
-            <p><strong>Fast & Secure:</strong> All conversions happen directly in your browser. Your files never leave your computer.</p>
-            <p><strong>No Registration:</strong> Convert files instantly without needing to sign up.</p>
-        </div>
-    </main>
+    <!-- Step 1: Include the FFmpeg library from a CDN (Content Delivery Network) -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
 
-    <footer>
-        <p>&copy; 2025 YourWebsiteName. All Rights Reserved.</p>
-    </footer>
+    <!-- Step 2: Our custom JavaScript for the conversion logic -->
+    <script>
+        // English Code Block Starts Here
 
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.0/dist/ffmpeg.min.js"></script>
-    <script src="script.js"></script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({
+            log: true, // Shows detailed progress in the browser console (press F12 to see)
+        });
+
+        // Get references to our HTML elements
+        const fileUploader = document.getElementById('uploader');
+        const statusElement = document.getElementById('status');
+
+        /**
+         * Loads the FFmpeg core. This is an asynchronous operation and can take a few seconds.
+         */
+        const loadFFmpeg = async () => {
+            try {
+                await ffmpeg.load();
+                statusElement.textContent = 'Ready! Please select an audio file.';
+            } catch (error) {
+                statusElement.textContent = 'Error loading converter engine. Please refresh the page.';
+                console.error(error);
+            }
+        };
+
+        // Start loading the FFmpeg engine as soon as the page opens
+        loadFFmpeg();
+
+        /**
+         * The main function that converts the uploaded audio file to MP3 format.
+         * @param {File} file - The audio file object uploaded by the user.
+         */
+        const transcodeFileToMp3 = async (file) => {
+            // Get the original filename without its extension (e.g., "my-song" from "my-song.wav")
+            const originalName = file.name.split('.').slice(0, -1).join('.');
+            const inputFileName = file.name;
+            const outputFileName = `${originalName}.mp3`;
+
+            statusElement.textContent = 'Step 1/4: Reading your file...';
+
+            try {
+                // Write the uploaded file into FFmpeg's virtual memory file system
+                ffmpeg.FS('writeFile', inputFileName, await fetchFile(file));
+
+                statusElement.textContent = 'Step 2/4: Converting... This may take a moment.';
+
+                // Run the actual FFmpeg command: -i [input file] [output file]
+                await ffmpeg.run('-i', inputFileName, outputFileName);
+
+                statusElement.textContent = 'Step 3/4: Conversion complete!';
+
+                // Read the resulting converted file from FFmpeg's virtual memory
+                const data = ffmpeg.FS('readFile', outputFileName);
+
+                statusElement.textContent = 'Step 4/4: Preparing your download...';
+                
+                // Convert the raw file data into a Blob, which is a downloadable object
+                const audioBlob = new Blob([data.buffer], { type: 'audio/mp3' });
+                
+                // Trigger the automatic download function
+                autoDownload(audioBlob, outputFileName);
+                
+                statusElement.textContent = 'Download started! Ready for another file.';
+
+            } catch (error) {
+                console.error(error);
+                statusElement.textContent = 'An error occurred. Please try a different audio file.';
+            }
+        };
+
+        /**
+         * Creates a temporary link and programmatically clicks it to trigger a file download.
+         * This happens instantly and automatically.
+         * @param {Blob} fileBlob - The file data as a Blob object.
+         * @param {string} fileName - The desired name for the downloaded file.
+         */
+        function autoDownload(fileBlob, fileName) {
+            // Create a temporary, invisible URL for the Blob object
+            const url = URL.createObjectURL(fileBlob);
+            
+            // Create a temporary, invisible link element (<a> tag)
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName; // This attribute tells the browser to download the file
+
+            // Add the link to the page (this is required for some browsers to work)
+            document.body.appendChild(link);
+            
+            // Programmatically click the link. This is the magic that starts the download.
+            link.click();
+            
+            // Clean up by removing the temporary link and URL from the browser's memory
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // This is an event listener. It "listens" for a 'change' event on the file input.
+        // When the user selects a file, this function is executed.
+        fileUploader.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            // Check if a file was selected and if the FFmpeg engine is ready
+            if (file && ffmpeg.isLoaded()) {
+                await transcodeFileToMp3(file);
+            } else if (!ffmpeg.isLoaded()) {
+                statusElement.textContent = 'Converter is still loading, please wait a moment and try again.';
+            }
+        });
+
+        // English Code Block Ends Here
+    </script>
+
 </body>
 </html>
