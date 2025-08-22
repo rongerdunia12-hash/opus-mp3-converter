@@ -16,7 +16,6 @@
             background-color: #f0f2f5;
             color: #333;
         }
-
         .converter-box {
             background-color: white;
             padding: 30px 40px;
@@ -26,21 +25,9 @@
             max-width: 500px;
             width: 90%;
         }
-
-        h1 {
-            color: #1a1a1a;
-            margin-bottom: 10px;
-        }
-
-        p {
-            color: #666;
-            line-height: 1.6;
-        }
-
-        #uploader {
-            display: none;
-        }
-
+        h1 { color: #1a1a1a; margin-bottom: 10px; }
+        p { color: #666; line-height: 1.6; }
+        #uploader { display: none; }
         .upload-btn {
             background: linear-gradient(45deg, #007bff, #0056b3);
             color: white;
@@ -51,40 +38,10 @@
             font-weight: bold;
             transition: all 0.2s ease;
         }
-        
-        /* Style for disabled button */
-        .upload-btn.disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-        }
-
-        #status {
-            margin-top: 25px;
-            font-style: italic;
-            color: #555;
-            min-height: 20px;
-        }
-        
-        /* Progress Bar Styles */
-        .progress-container {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            margin-top: 20px;
-            display: none; /* Hidden by default */
-        }
-        
-        .progress-bar {
-            width: 0%;
-            height: 20px;
-            background-color: #4CAF50;
-            text-align: center;
-            line-height: 20px;
-            color: white;
-            border-radius: 5px;
-            transition: width 0.4s ease;
-        }
-
+        .upload-btn.disabled { background: #cccccc; cursor: not-allowed; }
+        #status { margin-top: 25px; font-style: italic; color: #555; min-height: 20px; }
+        .progress-container { width: 100%; background-color: #e0e0e0; border-radius: 5px; margin-top: 20px; display: none; }
+        .progress-bar { width: 0%; height: 20px; background-color: #4CAF50; text-align: center; line-height: 20px; color: white; border-radius: 5px; transition: width 0.4s ease; }
     </style>
 </head>
 <body>
@@ -98,31 +55,25 @@
 
         <p id="status">Please wait, loading the converter engine (~25 MB)...</p>
 
-        <!-- New Progress Bar Element -->
         <div class="progress-container" id="progress-container">
             <div class="progress-bar" id="progress-bar">0%</div>
         </div>
     </div>
 
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
-
     <script>
-        // English Code Block with Progress Bar Logic
-
         const { createFFmpeg, fetchFile } = FFmpeg;
         const ffmpeg = createFFmpeg({
             log: true,
             corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
         });
 
-        // Get references to HTML elements
         const fileUploader = document.getElementById('uploader');
         const uploadLabel = document.getElementById('upload-label');
         const statusElement = document.getElementById('status');
         const progressContainer = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
 
-        // Function to update the progress bar
         ffmpeg.setProgress(({ ratio }) => {
             const progress = Math.round(ratio * 100);
             progressBar.style.width = progress + '%';
@@ -133,7 +84,7 @@
             try {
                 await ffmpeg.load();
                 statusElement.textContent = 'Ready! Please select an audio file.';
-                fileUploader.disabled = false; // Enable the file input
+                fileUploader.disabled = false;
                 uploadLabel.classList.remove('disabled');
             } catch (error) {
                 statusElement.textContent = 'Error loading converter engine. Please refresh the page.';
@@ -147,11 +98,9 @@
             const originalName = file.name.split('.').slice(0, -1).join('.');
             const outputFileName = `${originalName}.mp3`;
             
-            // Disable button during conversion
             fileUploader.disabled = true;
             uploadLabel.classList.add('disabled');
             
-            // Show progress bar
             progressContainer.style.display = 'block';
             progressBar.style.width = '0%';
             progressBar.textContent = '0%';
@@ -159,26 +108,20 @@
             try {
                 statusElement.textContent = 'Reading file...';
                 ffmpeg.FS('writeFile', file.name, await fetchFile(file));
-
                 statusElement.textContent = 'Converting... This may take a moment.';
                 await ffmpeg.run('-i', file.name, outputFileName);
-
                 statusElement.textContent = 'Conversion complete! Preparing download...';
                 const data = ffmpeg.FS('readFile', outputFileName);
                 
-                // Hide progress bar after completion
                 progressContainer.style.display = 'none';
-
                 const audioBlob = new Blob([data.buffer], { type: 'audio/mp3' });
                 autoDownload(audioBlob, outputFileName);
-                
                 statusElement.textContent = 'Download started! Ready for another file.';
             } catch (error) {
                 console.error(error);
                 statusElement.textContent = 'An error occurred during conversion.';
-                progressContainer.style.display = 'none'; // Hide progress bar on error
+                progressContainer.style.display = 'none';
             } finally {
-                // Re-enable the button
                 fileUploader.disabled = false;
                 uploadLabel.classList.remove('disabled');
             }
